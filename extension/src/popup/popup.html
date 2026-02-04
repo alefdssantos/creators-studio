@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Downloader</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 350px;
+      min-height: 200px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      background: #FFF8F0;
+    }
+
+    .popup {
+      display: flex;
+      flex-direction: column;
+      min-height: 200px;
+    }
+
+    .popup-header {
+      background: #000;
+      color: white;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .popup-header h1 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .queue-count {
+      background: #7C3AED;
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border: 2px solid white;
+    }
+
+    .popup-content {
+      flex: 1;
+      padding: 16px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 24px 16px;
+      color: #6B7280;
+    }
+
+    .empty-state p {
+      margin-bottom: 8px;
+    }
+
+    .empty-state .hint {
+      font-size: 12px;
+      color: #9CA3AF;
+    }
+
+    .queue-list {
+      max-height: 250px;
+      overflow-y: auto;
+      margin-bottom: 16px;
+    }
+
+    .queue-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: white;
+      border: 2px solid #000;
+      margin-bottom: 8px;
+    }
+
+    .platform-badge {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+      border: 2px solid #000;
+    }
+
+    .url {
+      flex: 1;
+      font-size: 11px;
+      color: #6B7280;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: 'Monaco', 'Menlo', monospace;
+    }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      color: #EF4444;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    }
+
+    .remove-btn:hover {
+      color: #DC2626;
+    }
+
+    .popup-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      border: 3px solid #000;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: center;
+    }
+
+    .btn.primary {
+      background: #10B981;
+      color: white;
+    }
+
+    .btn.primary:hover {
+      background: #059669;
+      transform: translate(-2px, -2px);
+      box-shadow: 4px 4px 0 #000;
+    }
+
+    .btn.secondary {
+      background: #F3F4F6;
+      color: #000;
+    }
+
+    .btn.secondary:hover {
+      background: #E5E7EB;
+      transform: translate(-2px, -2px);
+      box-shadow: 4px 4px 0 #000;
+    }
+
+    .popup-footer {
+      border-top: 2px solid #E5E7EB;
+      padding: 12px 16px;
+      text-align: center;
+    }
+
+    .btn.link {
+      background: none;
+      border: none;
+      color: #7C3AED;
+      font-size: 12px;
+      padding: 8px;
+    }
+
+    .btn.link:hover {
+      text-decoration: underline;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Scrollbar */
+    .queue-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .queue-list::-webkit-scrollbar-track {
+      background: #F3F4F6;
+    }
+
+    .queue-list::-webkit-scrollbar-thumb {
+      background: #D1D5DB;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="popup.js"></script>
+</body>
+</html>
