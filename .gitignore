@@ -20,6 +20,14 @@ backend/downloads/*.mp3
 backend/downloads/*.m4a
 backend/downloads/*.webm
 
+# Arquivos de mídia (nunca commitar)
+*.mp4
+*.mp3
+*.m4a
+*.webm
+*.avi
+*.mov
+
 # IDE
 .vscode/
 .idea/
