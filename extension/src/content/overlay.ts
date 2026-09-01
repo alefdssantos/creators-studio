@@ -8,6 +8,13 @@ import {
   DEFAULT_WEB_APP_URL,
 } from '@shared/constants';
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? '').replace(
+    /[&<>"']/g,
+    (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!,
+  );
+}
+
 export class OverlayManager {
   private container: HTMLElement | null = null;
   private detector: UrlDetector;
@@ -170,7 +177,7 @@ export class OverlayManager {
 
       preview.innerHTML = `
         <div class="downloader-ext-platform" style="background: ${platformColor}">
-          ${platformName}
+          ${escapeHtml(platformName)}
         </div>
         <p class="downloader-ext-hint">Abra um vídeo específico para adicionar à fila</p>
       `;
@@ -183,9 +190,9 @@ export class OverlayManager {
 
     preview.innerHTML = `
       <div class="downloader-ext-platform" style="background: ${color}">
-        ${platform.toUpperCase()}
+        ${escapeHtml(platform.toUpperCase())}
       </div>
-      <div class="downloader-ext-url">${this.truncateUrl(this.currentVideo.url, 45)}</div>
+      <div class="downloader-ext-url">${escapeHtml(this.truncateUrl(this.currentVideo.url, 45))}</div>
     `;
 
     if (addBtn) addBtn.disabled = false;
@@ -268,10 +275,10 @@ export class OverlayManager {
         (video) => `
       <div class="downloader-ext-queue-item">
         <span class="downloader-ext-queue-platform" style="background: ${PLATFORM_COLORS[video.platform] || '#666666'}">
-          ${video.platform.charAt(0).toUpperCase()}
+          ${escapeHtml(video.platform.charAt(0).toUpperCase())}
         </span>
-        <span class="downloader-ext-queue-url">${this.truncateUrl(video.url, 30)}</span>
-        <button class="downloader-ext-queue-remove" data-id="${video.id}">&times;</button>
+        <span class="downloader-ext-queue-url">${escapeHtml(this.truncateUrl(video.url, 30))}</span>
+        <button class="downloader-ext-queue-remove" data-id="${escapeHtml(video.id)}">&times;</button>
       </div>
     `
       )

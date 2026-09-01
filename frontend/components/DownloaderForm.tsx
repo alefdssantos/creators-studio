@@ -585,7 +585,7 @@ export default function DownloaderForm() {
     setMultiError('')
   }
 
-  const updateItemSetting = (id: string, key: keyof DownloadItem, value: any) => {
+  const updateItemSetting = <K extends keyof DownloadItem>(id: string, key: K, value: DownloadItem[K]) => {
     setDownloadItems(prev => prev.map(item =>
       item.id === id ? { ...item, [key]: value } : item
     ))

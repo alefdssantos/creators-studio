@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import DownloaderForm from '@/components/DownloaderForm'
 import DownloadHistory from '@/components/DownloadHistory'
 

@@ -15,19 +15,17 @@ export default function DownloadHistory() {
   const [history, setHistory] = useState<HistoryItem[]>([])
 
   useEffect(() => {
-    loadHistory()
-  }, [])
-
-  const loadHistory = () => {
     try {
       const stored = localStorage.getItem('downloadHistory')
       if (stored) {
-        setHistory(JSON.parse(stored))
+        const savedHistory = JSON.parse(stored) as HistoryItem[]
+        const timeoutId = window.setTimeout(() => setHistory(savedHistory), 0)
+        return () => window.clearTimeout(timeoutId)
       }
     } catch (err) {
       console.error('Error loading history:', err)
     }
-  }
+  }, [])
 
   const clearHistory = () => {
     localStorage.removeItem('downloadHistory')
