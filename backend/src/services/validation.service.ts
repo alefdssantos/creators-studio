@@ -144,12 +144,15 @@ export function validateDownloadRequest(request: DownloadRequest): {
     };
   }
 
+  const normalizedUrl = urlValidation.normalizedUrl!;
+
   return {
     valid: true,
     validatedRequest: {
       ...request,
+      url: normalizedUrl,
       platform: urlValidation.platform,
-      normalizedUrl: urlValidation.normalizedUrl!,
+      normalizedUrl,
       videoId: urlValidation.videoId ?? null,
     },
   };

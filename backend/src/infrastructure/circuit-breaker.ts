@@ -14,8 +14,9 @@ export enum CircuitState {
 
 export interface CircuitBreakerOptions {
   failureThreshold: number;
-  recoveryTime: number;
+  recoveryTimeMs: number;
   halfOpenRequests: number;
+  enabled: boolean;
 }
 
 interface CircuitStatus {
@@ -29,16 +30,16 @@ interface CircuitStatus {
 
 export class CircuitBreaker {
   private circuits = new Map<Platform, CircuitStatus>();
-  private options: CircuitBreakerOptions;
+  private options: Omit<CircuitBreakerOptions, 'enabled'>;
   private enabled: boolean;
 
   constructor(options?: Partial<CircuitBreakerOptions>) {
     this.options = {
       failureThreshold: options?.failureThreshold ?? resilienceConfig.circuitBreaker.failureThreshold,
-      recoveryTime: options?.recoveryTime ?? resilienceConfig.circuitBreaker.recoveryTime,
+      recoveryTimeMs: options?.recoveryTimeMs ?? resilienceConfig.circuitBreaker.recoveryTime,
       halfOpenRequests: options?.halfOpenRequests ?? resilienceConfig.circuitBreaker.halfOpenRequests,
     };
-    this.enabled = resilienceConfig.circuitBreaker.enabled;
+    this.enabled = options?.enabled ?? resilienceConfig.circuitBreaker.enabled;
   }
 
   /**
@@ -48,17 +49,13 @@ export class CircuitBreaker {
     if (!this.enabled) return true;
 
     const circuit = this.getOrCreateCircuit(platform);
+    this.refreshState(platform, circuit);
 
     switch (circuit.state) {
       case CircuitState.CLOSED:
         return true;
 
       case CircuitState.OPEN:
-        // Check if recovery time has passed
-        if (Date.now() - circuit.lastStateChange >= this.options.recoveryTime) {
-          this.transitionToHalfOpen(platform);
-          return true;
-        }
         return false;
 
       case CircuitState.HALF_OPEN:
@@ -74,6 +71,7 @@ export class CircuitBreaker {
     if (!this.enabled) return;
 
     const circuit = this.getOrCreateCircuit(platform);
+    this.refreshState(platform, circuit);
     circuit.successes++;
 
     if (circuit.state === CircuitState.HALF_OPEN) {
@@ -96,6 +94,7 @@ export class CircuitBreaker {
     if (!this.enabled) return;
 
     const circuit = this.getOrCreateCircuit(platform);
+    this.refreshState(platform, circuit);
     circuit.failures++;
     circuit.lastFailure = Date.now();
 
@@ -114,22 +113,28 @@ export class CircuitBreaker {
    * Get circuit state for platform
    */
   getState(platform: Platform): CircuitState {
-    const circuit = this.circuits.get(platform);
-    return circuit?.state ?? CircuitState.CLOSED;
+    if (!this.enabled) return CircuitState.CLOSED;
+    const circuit = this.getOrCreateCircuit(platform);
+    this.refreshState(platform, circuit);
+    return circuit.state;
   }
 
   /**
    * Get full circuit status
    */
   getStatus(platform: Platform): CircuitStatus | null {
-    return this.circuits.get(platform) ?? null;
+    const circuit = this.circuits.get(platform);
+    if (circuit) this.refreshState(platform, circuit);
+    return circuit ?? null;
   }
 
   /**
    * Get all circuits status
    */
-  getAllStatus(): Map<Platform, CircuitStatus> {
-    return new Map(this.circuits);
+  getAllStatus(): Record<Platform, CircuitState> {
+    return Object.fromEntries(
+      Object.values(Platform).map((platform) => [platform, this.getState(platform)])
+    ) as Record<Platform, CircuitState>;
   }
 
   /**
@@ -171,6 +176,15 @@ export class CircuitBreaker {
     return circuit;
   }
 
+  private refreshState(platform: Platform, circuit: CircuitStatus): void {
+    if (
+      circuit.state === CircuitState.OPEN &&
+      Date.now() - circuit.lastStateChange >= this.options.recoveryTimeMs
+    ) {
+      this.transitionToHalfOpen(platform);
+    }
+  }
+
   private transitionToOpen(platform: Platform): void {
     const circuit = this.getOrCreateCircuit(platform);
     circuit.state = CircuitState.OPEN;
@@ -202,7 +216,7 @@ export class CircuitBreaker {
 
     logEvents.circuitBreakerClosed({
       platform,
-      recoveryTimeMs: this.options.recoveryTime,
+      recoveryTimeMs: this.options.recoveryTimeMs,
     });
   }
 }

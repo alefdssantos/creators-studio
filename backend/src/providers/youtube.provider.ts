@@ -37,20 +37,34 @@ export class YouTubeProvider extends BaseProvider {
   }
 
   extractVideoId(url: string): string | null {
-    // Try various YouTube URL formats
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([\w-]{11})/,
-      /youtube\.com\/watch\?.*v=([\w-]{11})/,
-    ];
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
 
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match) {
-        return match[1];
+      const hostname = parsed.hostname.toLowerCase().replace(/\.$/, '');
+      let videoId: string | null = null;
+
+      if (hostname === 'youtu.be' || hostname === 'www.youtu.be') {
+        const segments = parsed.pathname.split('/').filter(Boolean);
+        videoId = segments.length === 1 ? segments[0] : null;
+      } else if (
+        hostname === 'youtube.com' ||
+        hostname === 'www.youtube.com' ||
+        hostname === 'm.youtube.com' ||
+        hostname === 'music.youtube.com'
+      ) {
+        if (parsed.pathname === '/watch') {
+          videoId = parsed.searchParams.get('v');
+        } else {
+          const match = parsed.pathname.match(/^\/(?:embed|v|shorts)\/([^/]+)\/?$/);
+          videoId = match?.[1] ?? null;
+        }
       }
-    }
 
-    return null;
+      return videoId && /^[A-Za-z0-9_-]{11}$/.test(videoId) ? videoId : null;
+    } catch {
+      return null;
+    }
   }
 
   normalizeUrl(url: string): string {

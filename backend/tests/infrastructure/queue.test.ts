@@ -49,7 +49,7 @@ describe('TaskQueue', () => {
       })
 
       // Advance time for both tasks
-      vi.advanceTimersByTime(150)
+      await vi.advanceTimersByTimeAsync(150)
 
       const results = await Promise.all([task1, task2])
 
@@ -81,10 +81,10 @@ describe('TaskQueue', () => {
       })
 
       // Advance time for first batch
-      vi.advanceTimersByTime(150)
+      await vi.advanceTimersByTimeAsync(150)
 
       // Task3 should start now
-      vi.advanceTimersByTime(150)
+      await vi.advanceTimersByTimeAsync(150)
 
       const results = await Promise.all([task1, task2, task3])
 
@@ -125,11 +125,12 @@ describe('TaskQueue', () => {
         await new Promise(r => setTimeout(r, 10000)) // Longer than timeout
         return 'should not reach'
       })
+      const rejection = expect(promise).rejects.toThrow()
 
       // Advance past timeout
-      vi.advanceTimersByTime(6000)
+      await vi.advanceTimersByTimeAsync(6000)
 
-      await expect(promise).rejects.toThrow()
+      await rejection
     })
   })
 
@@ -162,7 +163,7 @@ describe('TaskQueue', () => {
       expect(status.queued).toBe(1)
 
       // Complete tasks
-      vi.advanceTimersByTime(150)
+      await vi.advanceTimersByTimeAsync(150)
       await Promise.all([task1, task2])
 
       // Check status - 1 running (task3 started), 0 queued
@@ -170,7 +171,7 @@ describe('TaskQueue', () => {
       expect(status.running).toBe(1)
       expect(status.queued).toBe(0)
 
-      vi.advanceTimersByTime(150)
+      await vi.advanceTimersByTimeAsync(150)
       await task3
 
       // All done
@@ -216,7 +217,7 @@ describe('TaskQueue', () => {
       expect(queue.getStatus().loadPercent).toBe(100)
 
       // Clean up
-      vi.advanceTimersByTime(150)
+      await vi.advanceTimersByTimeAsync(150)
       await Promise.all([task1, task2])
     })
   })
@@ -235,7 +236,7 @@ describe('TaskQueue', () => {
       )
 
       // Process all tasks
-      vi.advanceTimersByTime(200)
+      await vi.advanceTimersByTimeAsync(200)
       await Promise.all(tasks)
 
       // First batch (1, 2) should complete first, then next batch (3, 4), then 5
@@ -268,7 +269,7 @@ describe('TaskQueue', () => {
       })
 
       // Process tasks
-      vi.advanceTimersByTime(150)
+      await vi.advanceTimersByTimeAsync(150)
       await Promise.all([task1, task2])
 
       // Should be strictly sequential
@@ -283,6 +284,12 @@ describe('TaskQueue', () => {
     it('should handle synchronous task', async () => {
       const result = await queue.add(() => Promise.resolve('sync'))
       expect(result).toBe('sync')
+    })
+
+    it('should reject invalid concurrency limits', () => {
+      expect(() => new TaskQueue({ maxConcurrent: 0 })).toThrow(
+        'maxConcurrent must be a positive integer'
+      )
     })
   })
 })

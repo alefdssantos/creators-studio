@@ -95,6 +95,8 @@ export class LRUCache<T> {
     // Update access info
     entry.accessCount++;
     entry.lastAccessed = Date.now();
+    this.cache.delete(key);
+    this.cache.set(key, entry);
     this.hits++;
 
     return entry.data;
@@ -105,9 +107,10 @@ export class LRUCache<T> {
    */
   set(url: string, data: T): void {
     const key = this.generateKey(url);
+    const exists = this.cache.delete(key);
 
     // Evict if at capacity
-    if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
+    if (this.cache.size >= this.maxSize && !exists) {
       this.evictLRU();
     }
 
@@ -157,19 +160,8 @@ export class LRUCache<T> {
    * Evict least recently used item
    */
   private evictLRU(): void {
-    let oldestKey: string | null = null;
-    let oldestAccess = Infinity;
-
-    for (const [key, entry] of this.cache) {
-      if (entry.lastAccessed < oldestAccess) {
-        oldestAccess = entry.lastAccessed;
-        oldestKey = key;
-      }
-    }
-
-    if (oldestKey) {
-      this.cache.delete(oldestKey);
-    }
+    const oldestKey = this.cache.keys().next().value;
+    if (oldestKey !== undefined) this.cache.delete(oldestKey);
   }
 
   /**

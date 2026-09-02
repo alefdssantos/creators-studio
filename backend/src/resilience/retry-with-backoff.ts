@@ -87,8 +87,10 @@ export async function retryWithBackoff<T>(
 
   const startTime = Date.now();
   let lastError: Error | null = null;
+  let attempts = 0;
 
   for (let attempt = 1; attempt <= config.maxAttempts; attempt++) {
+    attempts = attempt;
     try {
       const result = await operation();
       return {
@@ -142,13 +144,13 @@ export async function retryWithBackoff<T>(
   const structuredError = ErrorClassifier.classify(lastError?.message || 'Unknown error', {
     platform: context.platform,
     requestId: context.requestId,
-    attempts: config.maxAttempts,
+    attempts,
   });
 
   return {
     success: false,
     error: structuredError,
-    attempts: config.maxAttempts,
+    attempts,
     totalTimeMs: Date.now() - startTime,
   };
 }

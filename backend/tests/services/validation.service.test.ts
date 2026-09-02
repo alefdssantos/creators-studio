@@ -255,12 +255,15 @@ describe('Validation Service', () => {
     describe('Request Properties', () => {
       it('should include normalized URL in validated request', () => {
         const result = validateDownloadRequest({
-          url: 'https://youtu.be/dQw4w9WgXcQ',
+          url: 'http://youtu.be/dQw4w9WgXcQ',
           type: 'video'
         })
 
         expect(result.valid).toBe(true)
-        expect(result.validatedRequest?.normalizedUrl).toBeDefined()
+        expect(result.validatedRequest?.normalizedUrl).toBe(
+          'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+        )
+        expect(result.validatedRequest?.url).toBe(result.validatedRequest?.normalizedUrl)
       })
 
       it('should include platform in validated request', () => {

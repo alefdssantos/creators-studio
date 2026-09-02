@@ -14,6 +14,7 @@ export interface QueueTask<T> {
   timeoutId?: NodeJS.Timeout;
   addedAt: number;
   startedAt?: number;
+  settled?: boolean;
 }
 
 export interface QueueOptions {
@@ -28,6 +29,7 @@ export interface QueueStatus {
   maxConcurrent: number;
   totalProcessed: number;
   totalFailed: number;
+  loadPercent: number;
 }
 
 export class TaskQueue<T = unknown> {
@@ -36,11 +38,15 @@ export class TaskQueue<T = unknown> {
   private name: string;
   private running = 0;
   private queue: QueueTask<T>[] = [];
+  private runningTasks = new Map<string, QueueTask<T>>();
   private totalProcessed = 0;
   private totalFailed = 0;
   private taskIdCounter = 0;
 
   constructor(options: QueueOptions) {
+    if (!Number.isInteger(options.maxConcurrent) || options.maxConcurrent < 1) {
+      throw new Error('maxConcurrent must be a positive integer');
+    }
     this.maxConcurrent = options.maxConcurrent;
     this.timeout = options.timeout || 0;
     this.name = options.name || 'queue';
@@ -88,36 +94,37 @@ export class TaskQueue<T = unknown> {
   /**
    * Process next task in queue
    */
-  private async process(): Promise<void> {
-    if (this.running >= this.maxConcurrent || this.queue.length === 0) {
-      return;
+  private process(): void {
+    while (this.running < this.maxConcurrent && this.queue.length > 0) {
+      const queueTask = this.queue.shift()!;
+      this.running++;
+      queueTask.startedAt = Date.now();
+      this.runningTasks.set(queueTask.id, queueTask);
+      void this.execute(queueTask);
     }
+  }
 
-    this.running++;
-    const queueTask = this.queue.shift()!;
-    queueTask.startedAt = Date.now();
-
+  private async execute(queueTask: QueueTask<T>): Promise<void> {
     try {
       const result = await queueTask.task();
-
-      // Clear timeout
-      if (queueTask.timeoutId) {
-        clearTimeout(queueTask.timeoutId);
+      if (!queueTask.settled) {
+        queueTask.settled = true;
+        this.totalProcessed++;
+        queueTask.resolve(result);
       }
-
-      this.totalProcessed++;
-      queueTask.resolve(result);
     } catch (error) {
-      // Clear timeout
-      if (queueTask.timeoutId) {
-        clearTimeout(queueTask.timeoutId);
+      if (!queueTask.settled) {
+        queueTask.settled = true;
+        this.totalProcessed++;
+        this.totalFailed++;
+        queueTask.reject(error instanceof Error ? error : new Error(String(error)));
       }
-
-      this.totalFailed++;
-      queueTask.reject(error instanceof Error ? error : new Error(String(error)));
     } finally {
-      this.running--;
-      this.process();
+      if (queueTask.timeoutId) clearTimeout(queueTask.timeoutId);
+      if (this.runningTasks.delete(queueTask.id)) {
+        this.running--;
+        this.process();
+      }
     }
   }
 
@@ -133,7 +140,21 @@ export class TaskQueue<T = unknown> {
         clearTimeout(task.timeoutId);
       }
       task.abortController?.abort();
+      task.settled = true;
+      this.totalProcessed++;
+      this.totalFailed++;
       task.reject(new AppError(ErrorCode.QUEUE_TIMEOUT, ErrorType.QUEUE, reason));
+      return true;
+    }
+
+    const runningTask = this.runningTasks.get(taskId);
+    if (runningTask && !runningTask.settled) {
+      if (runningTask.timeoutId) clearTimeout(runningTask.timeoutId);
+      runningTask.abortController?.abort();
+      runningTask.settled = true;
+      this.totalProcessed++;
+      this.totalFailed++;
+      runningTask.reject(new AppError(ErrorCode.QUEUE_TIMEOUT, ErrorType.QUEUE, reason));
       return true;
     }
 
@@ -150,6 +171,7 @@ export class TaskQueue<T = unknown> {
       maxConcurrent: this.maxConcurrent,
       totalProcessed: this.totalProcessed,
       totalFailed: this.totalFailed,
+      loadPercent: this.getLoad(),
     };
   }
 
@@ -170,6 +192,9 @@ export class TaskQueue<T = unknown> {
         clearTimeout(task.timeoutId);
       }
       task.abortController?.abort();
+      task.settled = true;
+      this.totalProcessed++;
+      this.totalFailed++;
       task.reject(new AppError(ErrorCode.QUEUE_TIMEOUT, ErrorType.QUEUE, 'Queue cleared'));
     }
     this.queue = [];

@@ -53,6 +53,9 @@ describe('YouTubeProvider', () => {
         'https://www.youtube.com/user/test',
         'https://vimeo.com/123456789',
         'https://www.tiktok.com/@user/video/123',
+        'https://notyoutube.com/watch?v=dQw4w9WgXcQ',
+        'https://www.youtube.com.evil.example/watch?v=dQw4w9WgXcQ',
+        'javascript:alert(1)',
         'not-a-url',
         '',
       ]
